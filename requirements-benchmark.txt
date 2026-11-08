@@ -1,0 +1,2 @@
+# Optional dependencies for FinBERT comparison; install CPU-only PyTorch first.
+transformers>=4.46,<5

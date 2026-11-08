@@ -48,6 +48,12 @@ Run the standard-library tests from the repository root with:
 python -m unittest discover -s tests -v
 ```
 
+To compare this classifier with the compression-based MDL approximation and
+FinBERT on the same stratified holdout, follow the dataset and benchmark
+instructions in the [project README](../README.md). FinBERT and the Hugging
+Face model dependencies are optional; the entropy classifier itself does not
+require them.
+
 The tokenizer marks a three-token scope after simple negation cues, which helps
 with phrases such as “not very good”; it is not a full linguistic negation
 parser. The estimator uses information gain for feature selection and

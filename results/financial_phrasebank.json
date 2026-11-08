@@ -1,0 +1,233 @@
+{
+  "metadata": {
+    "dataset": "Financial PhraseBank (75% agreement)",
+    "dataset_sha256": "6706bb96da5c96902cc5e30e60f8542814dbf4141823ec6cad255c865536bf0b",
+    "examples": 3448,
+    "train_examples": 2759,
+    "test_examples": 689,
+    "test_size": 0.2,
+    "split_strategy": "stratified",
+    "time_column": null,
+    "seed": 42,
+    "classes": [
+      "negative",
+      "neutral",
+      "positive"
+    ],
+    "python": "3.12.3",
+    "platform": "Linux-6.8.0-1064-azure-x86_64-with-glibc2.39",
+    "configuration": {
+      "max_features": 5000,
+      "finbert": "ProsusAI/finbert",
+      "finbert_batch_size": 16,
+      "finbert_max_length": 128,
+      "device": "cpu"
+    },
+    "package_versions": {
+      "torch": "2.15.0",
+      "transformers": "4.57.6"
+    }
+  },
+  "results": [
+    {
+      "model": "majority_baseline",
+      "fit_seconds": 0.0003056509999623813,
+      "inference_ms_per_1000": 0.0018026125588179235,
+      "stored_model_bytes": 115,
+      "peak_python_memory_bytes": 5724,
+      "selected_features": null,
+      "metrics": {
+        "accuracy": 0.6211901306240929,
+        "macro_f1": 0.2554461354819457,
+        "per_class": {
+          "negative": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 84
+          },
+          "neutral": {
+            "precision": 0.6211901306240929,
+            "recall": 1.0,
+            "f1": 0.7663384064458372,
+            "support": 428
+          },
+          "positive": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 177
+          }
+        },
+        "confusion_matrix": {
+          "negative": {
+            "negative": 0,
+            "neutral": 84,
+            "positive": 0
+          },
+          "neutral": {
+            "negative": 0,
+            "neutral": 428,
+            "positive": 0
+          },
+          "positive": {
+            "negative": 0,
+            "neutral": 177,
+            "positive": 0
+          }
+        }
+      }
+    },
+    {
+      "model": "entropy_weighted_nb",
+      "fit_seconds": 0.1274982490003822,
+      "inference_ms_per_1000": 6431.889489114801,
+      "stored_model_bytes": 263553,
+      "peak_python_memory_bytes": 8897226,
+      "selected_features": 5000,
+      "metrics": {
+        "accuracy": 0.6473149492017417,
+        "macro_f1": 0.3206470615680768,
+        "per_class": {
+          "negative": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 84
+          },
+          "neutral": {
+            "precision": 0.6455505279034691,
+            "recall": 1.0,
+            "f1": 0.7846012832263979,
+            "support": 428
+          },
+          "positive": {
+            "precision": 0.6923076923076923,
+            "recall": 0.1016949152542373,
+            "f1": 0.17733990147783252,
+            "support": 177
+          }
+        },
+        "confusion_matrix": {
+          "negative": {
+            "negative": 0,
+            "neutral": 76,
+            "positive": 8
+          },
+          "neutral": {
+            "negative": 0,
+            "neutral": 428,
+            "positive": 0
+          },
+          "positive": {
+            "negative": 0,
+            "neutral": 159,
+            "positive": 18
+          }
+        }
+      }
+    },
+    {
+      "model": "zlib_mdl",
+      "fit_seconds": 0.0009481520000917953,
+      "inference_ms_per_1000": 3727.4393164006156,
+      "stored_model_bytes": 98545,
+      "peak_python_memory_bytes": 715126,
+      "selected_features": null,
+      "metrics": {
+        "accuracy": 0.7242380261248186,
+        "macro_f1": 0.5085277583203118,
+        "per_class": {
+          "negative": {
+            "precision": 0.6666666666666666,
+            "recall": 0.09523809523809523,
+            "f1": 0.16666666666666666,
+            "support": 84
+          },
+          "neutral": {
+            "precision": 0.7244367417677643,
+            "recall": 0.9766355140186916,
+            "f1": 0.8318407960199006,
+            "support": 428
+          },
+          "positive": {
+            "precision": 0.73,
+            "recall": 0.4124293785310734,
+            "f1": 0.5270758122743682,
+            "support": 177
+          }
+        },
+        "confusion_matrix": {
+          "negative": {
+            "negative": 8,
+            "neutral": 58,
+            "positive": 18
+          },
+          "neutral": {
+            "negative": 1,
+            "neutral": 418,
+            "positive": 9
+          },
+          "positive": {
+            "negative": 3,
+            "neutral": 101,
+            "positive": 73
+          }
+        }
+      }
+    },
+    {
+      "model": "finbert:ProsusAI/finbert",
+      "fit_seconds": 0.0,
+      "setup_seconds": 0.5320436960000734,
+      "inference_ms_per_1000": 71762.42381277181,
+      "stored_model_bytes": 437938188,
+      "stored_model_size_note": "model parameter bytes; excludes tokenizer and runtime",
+      "model_revision": "0bc2ac10dda6929bcb1f77ccc43c7ec5c424f031",
+      "peak_python_memory_bytes": 11525877,
+      "selected_features": null,
+      "metrics": {
+        "accuracy": 0.9390420899854862,
+        "macro_f1": 0.9308143405623593,
+        "per_class": {
+          "negative": {
+            "precision": 0.8556701030927835,
+            "recall": 0.9880952380952381,
+            "f1": 0.9171270718232044,
+            "support": 84
+          },
+          "neutral": {
+            "precision": 0.9898734177215189,
+            "recall": 0.9135514018691588,
+            "f1": 0.9501822600243013,
+            "support": 428
+          },
+          "positive": {
+            "precision": 0.8781725888324873,
+            "recall": 0.9774011299435028,
+            "f1": 0.9251336898395722,
+            "support": 177
+          }
+        },
+        "confusion_matrix": {
+          "negative": {
+            "negative": 83,
+            "neutral": 1,
+            "positive": 0
+          },
+          "neutral": {
+            "negative": 13,
+            "neutral": 391,
+            "positive": 24
+          },
+          "positive": {
+            "negative": 1,
+            "neutral": 3,
+            "positive": 173
+          }
+        }
+      },
+      "device": "cpu"
+    }
+  ]
+}
