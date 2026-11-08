@@ -1,0 +1,272 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{hyperref}
+
+\definecolor{navy}{HTML}{12304A}
+\definecolor{teal}{HTML}{139A91}
+\definecolor{gold}{HTML}{E8A838}
+\definecolor{pale}{HTML}{EFF5F8}
+\definecolor{muted}{HTML}{657786}
+
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamercolor{structure}{fg=teal}
+\setbeamercolor{title}{fg=navy}
+\setbeamercolor{subtitle}{fg=teal}
+\setbeamercolor{frametitle}{fg=navy,bg=pale}
+\setbeamercolor{palette primary}{bg=navy,fg=white}
+\setbeamercolor{palette secondary}{bg=navy!86,fg=white}
+\setbeamercolor{palette tertiary}{bg=navy!72,fg=white}
+\setbeamercolor{palette quaternary}{bg=teal,fg=white}
+\setbeamercolor{block title}{bg=navy,fg=white}
+\setbeamercolor{block body}{bg=pale,fg=navy}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{itemize item}{\color{teal}\small$\blacktriangleright$}
+\setbeamertemplate{itemize subitem}{\color{gold}\scriptsize$\blacktriangleright$}
+
+\title[Sentiment efficace]{Sentiment financier par entropie et compression}
+\subtitle{Comparer une représentation compacte à FinBERT}
+\author{Votre nom}
+\institute{Votre établissement}
+\date{Compte-rendu expérimental}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+  \vspace{-0.5cm}
+  \begin{center}
+    \small\color{navy!75}
+    Objectif : réduire le coût de classification sans masquer le compromis de qualité.
+  \end{center}
+\end{frame}
+
+\begin{frame}{Question et idée du projet}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.56\textwidth}
+      \begin{block}{Question}
+        Peut-on classer le sentiment financier sans dépendre entièrement
+        d'embeddings et de Transformers lourds ?
+      \end{block}
+      \begin{itemize}
+        \item Représenter les textes par des mots présents/absents.
+        \item Pondérer les mots selon leur gain d'information.
+        \item Explorer le principe MDL : choisir l'explication qui minimise
+        la description du modèle et du texte restant.
+      \end{itemize}
+    \column{0.39\textwidth}
+      \begin{tikzpicture}[node distance=0.36cm]
+        \node[draw=teal,rounded corners,fill=pale,align=center,
+          text width=3.45cm,minimum height=0.9cm] (text) {Phrase financière};
+        \node[draw=teal,rounded corners,fill=pale,align=center,
+          text width=3.45cm,below=of text,minimum height=0.9cm] (info)
+          {Mots et information};
+        \node[draw=teal,rounded corners,fill=pale,align=center,
+          text width=3.45cm,below=of info,minimum height=0.9cm] (class)
+          {Sentiment prédit};
+        \draw[->,thick,navy] (text) -- (info);
+        \draw[->,thick,navy] (info) -- (class);
+      \end{tikzpicture}
+      \vspace{0.35cm}
+      {\scriptsize\color{muted}Deux pistes légères : entropie pondérée et
+      classification par compression zlib.}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Ce qui a été construit}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}
+      \begin{block}{1. Entropie}
+        Bernoulli Naive Bayes, sélection du vocabulaire par gain d'information,
+        jusqu'à 5\,000 caractéristiques.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{2. MDL / zlib}
+        Un dictionnaire par classe, appris sur le train ; prédiction par coût
+        du dictionnaire, résidu compressé et a priori.
+      \end{block}
+    \column{0.32\textwidth}
+      \begin{block}{3. Comparaison}
+        Baseline majorité, mêmes exemples de test, FinBERT préentraîné en
+        inférence seule et rapports réutilisables.
+      \end{block}
+  \end{columns}
+  \vfill
+  \begin{alertblock}{Interprétation}
+    zlib MDL est une approximation pratique de l'idée MDL du cours, pas un
+    code universel optimal. Le modèle entropique n'est pas lui-même un
+    algorithme MDL complet.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Protocole expérimental}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{itemize}
+        \item Financial PhraseBank, accord des annotateurs $\geq 75\%$.
+        \item 3\,448 phrases après déduplication.
+        \item Split stratifié : 2\,759 train, 689 test ; graine 42.
+        \item 3 classes : négatif, neutre, positif.
+        \item FinBERT (\texttt{ProsusAI/finbert}), CPU, 128 tokens, sans
+        fine-tuning.
+      \end{itemize}
+    \column{0.48\textwidth}
+      \begin{block}{Pourquoi le F1 macro ?}
+        Le test contient 428 exemples neutres, 177 positifs et 84 négatifs.
+        Le F1 macro donne le même poids à chaque classe ; l'accuracy seule
+        favorise la classe majoritaire.
+      \end{block}
+      \begin{block}{Artefacts livrés}
+        Empreinte du corpus, split et paramètres dans le JSON ; scores par
+        classe, matrice de confusion, durées et tailles dans le rapport.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Résultats : qualité sur le test}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.58\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \begin{axis}[
+          xbar,
+          width=\textwidth,
+          height=5.1cm,
+          xmin=0,xmax=1,
+          xlabel={Score (0--1)},
+          symbolic y coords={FinBERT,Compression,Entropie,Majorité},
+          ytick=data,
+          y dir=reverse,
+          bar width=8pt,
+          enlarge y limits=0.2,
+          nodes near coords,
+          nodes near coords align={horizontal},
+          nodes near coords style={font=\scriptsize},
+          xtick={0,0.2,0.4,0.6,0.8,1.0},
+          grid=major,
+          grid style={draw=gray!20},
+          tick label style={font=\scriptsize},
+          label style={font=\scriptsize},
+          axis line style={gray!50},
+          tick style={gray!50},
+          legend style={at={(0.5,-0.23)},anchor=north,legend columns=2,
+            draw=none,font=\scriptsize},
+        ]
+          \addplot[fill=navy,draw=navy] coordinates {
+            (0.2554,Majorité) (0.3206,Entropie) (0.5085,Compression) (0.9308,FinBERT)
+          };
+          \addlegendentry{F1 macro}
+          \addplot[fill=teal,draw=teal] coordinates {
+            (0.6212,Majorité) (0.6473,Entropie) (0.7242,Compression) (0.9390,FinBERT)
+          };
+          \addlegendentry{Accuracy}
+        \end{axis}
+      \end{tikzpicture}
+    \column{0.38\textwidth}
+      \begin{alertblock}{À retenir}
+        FinBERT obtient le meilleur score. zlib MDL améliore les baselines
+        légères, sans atteindre une qualité comparable à FinBERT.
+      \end{alertblock}
+      {\small
+      \begin{tabular}{lrr}
+        \toprule
+        Modèle & Acc. & F1 macro\\
+        \midrule
+        Majorité & 0,621 & 0,255\\
+        Entropie & 0,647 & 0,321\\
+        zlib MDL & 0,724 & 0,509\\
+        FinBERT & 0,939 & 0,931\\
+        \bottomrule
+      \end{tabular}}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Compromis mesuré et limites}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.53\textwidth}
+      \begin{block}{Inférence CPU / 1\,000 textes}
+        \begin{tabular}{lr}
+          \toprule
+          zlib MDL & 3,73 s\\
+          Entropie pondérée & 6,43 s\\
+          FinBERT & 71,76 s\\
+          \bottomrule
+        \end{tabular}
+        \vspace{0.15cm}
+
+        Sur ce lot, zlib est environ 19 fois plus rapide que FinBERT.
+      \end{block}
+      \begin{block}{Taille enregistrée}
+        zlib MDL : 0,099 Mo ; FinBERT : 437,94 Mo.
+      \end{block}
+    \column{0.43\textwidth}
+      \begin{alertblock}{Prudence}
+        \begin{itemize}
+          \item Un seul split stratifié et un petit corpus de phrases.
+          \item Le rappel négatif de zlib n'est que de 9,5\%.
+          \item Les tailles ne mesurent pas exactement le même objet :
+          modèle sérialisé contre poids seuls de FinBERT.
+          \item \texttt{tracemalloc} ne mesure ni toute la RAM native de
+          PyTorch ni la RAM pendant l'inférence.
+        \end{itemize}
+      \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Conclusion et prochaines étapes}
+  \begin{block}{Conclusion}
+    La compression offre un compromis intéressant en vitesse et taille, mais
+    sur ce test elle perd nettement en F1 macro. FinBERT gagne en qualité ;
+    zlib MDL reste une piste si les contraintes de ressources dominent.
+  \end{block}
+  \begin{enumerate}
+    \item Répéter avec plusieurs graines et publier moyenne et dispersion.
+    \item Tester des textes dédupliqués avec une séparation chronologique.
+    \item Améliorer la reconnaissance des sentiments négatifs.
+    \item Mesurer la mémoire réelle et garder des tailles de modèles comparables.
+  \end{enumerate}
+  \vfill
+  \begin{center}
+    \Large\color{teal}Merci de votre attention
+  \end{center}
+\end{frame}
+
+\begin{frame}{Références}
+  \footnotesize
+  \begin{thebibliography}{9}
+    \bibitem{malo}
+    P. Malo et al. (2014).
+    \newblock Good debt or bad debt: Detecting semantic orientations in
+    economic texts.
+    \newblock \emph{Journal of the Association for Information Science and
+    Technology}, 65.
+    \newblock Financial PhraseBank, accord de 75\,\%; licence CC BY-NC-SA 3.0.
+
+    \bibitem{araci}
+    D. Araci (2019).
+    \newblock FinBERT: Financial Sentiment Analysis with Pre-trained Language
+    Models.
+    \newblock \url{https://arxiv.org/abs/1908.10063}
+
+    \bibitem{rissanen}
+    J. Rissanen (1978).
+    \newblock Modeling by shortest data description.
+    \newblock \emph{Automatica}, 14(5), 465--471.
+  \end{thebibliography}
+  \vfill
+  \scriptsize
+  Résultats reproductibles et matrice de confusion :
+  \url{https://github.com/EtiennePellissier/Compressed-representation}
+\end{frame}
+
+\end{document}

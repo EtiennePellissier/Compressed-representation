@@ -144,3 +144,12 @@ inférieur de 0,422. C'est un seul split, donc un résultat pilote ; répétez
 l'expérience avec plusieurs graines avant d'en tirer une conclusion générale.
 Les tailles mesurées ne représentent pas exactement le même format de
 stockage, et le pic `tracemalloc` n'est pas la RAM réelle du modèle.
+
+## Présentation orale
+
+Le [compte-rendu oral de cinq minutes](./docs/compte-rendu-5-minutes.md) et
+les sources Beamer de la [présentation Overleaf](./overleaf/main.tex) sont
+fournis dans le dépôt. L'archive
+[`presentation-overleaf.zip`](./presentation-overleaf.zip) s'importe
+directement dans Overleaf ; les consignes sont dans
+[`overleaf/README.md`](./overleaf/README.md).
