@@ -25,14 +25,32 @@ model.fit(
 print(model.predict(["love this film", "awful movie"]))
 ```
 
+Evaluate a labeled CSV (`text` and `label` columns by default) with a
+deterministic stratified 75/25 split. The JSON report includes accuracy,
+macro-F1, per-class precision/recall/F1, a confusion matrix, and a
+majority-class baseline:
+
+```console
+python evaluate_sentiment.py --csv labels.csv --text-col text --label-col label --seed 13
+```
+
+For example, the test suite uses a small, deliberately simple three-class
+corpus and checks that all held-out examples are classified correctly. This is
+a pipeline smoke test, not a representative benchmark: it does not demonstrate
+real-world or transformer-level accuracy. Evaluate on independently labeled
+data, avoid duplicate/article leakage across splits, and prefer a chronological
+holdout for financial news. Compare to the majority baseline and a conventional
+TF-IDF + logistic-regression baseline before claiming useful quality.
+
 Run the standard-library tests from the repository root with:
 
 ```console
 python -m unittest discover -s tests -v
 ```
 
-This is an initial baseline, not a claim of parity with transformer accuracy.
-Measure accuracy, model size, and runtime on the same held-out dataset before
-making performance claims. The current estimator uses information gain for
-feature selection and weighting; it does not yet optimize a complete
-minimum-description-length objective over model and residual-data costs.
+The tokenizer marks a three-token scope after simple negation cues, which helps
+with phrases such as “not very good”; it is not a full linguistic negation
+parser. The estimator uses information gain for feature selection and
+weighting; it does not yet optimize a complete minimum-description-length
+objective over model and residual-data costs. Measure accuracy, model size,
+and runtime on the same held-out dataset before making performance claims.

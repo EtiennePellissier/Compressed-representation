@@ -9,13 +9,25 @@ from collections.abc import Sequence
 
 
 _TOKEN_RE = re.compile(r"[^\W_]+(?:['\u2019][^\W_]+)?", re.UNICODE)
+_NEGATORS = {"no", "not", "never", "neither", "nor", "without"}
+_NEGATION_SCOPE = 3
 
 
 def tokenize(text: str) -> list[str]:
-    """Split text into lowercase Unicode words, retaining internal apostrophes."""
+    """Split into lowercase words and mark a short scope after negation cues."""
     if not isinstance(text, str):
         raise TypeError("each text must be a string")
-    return _TOKEN_RE.findall(text.casefold())
+    words = _TOKEN_RE.findall(text.casefold().replace("’", "'"))
+    tokens = []
+    negation_left = 0
+    for word in words:
+        tokens.append(word)
+        if word in _NEGATORS or word.endswith("n't"):
+            negation_left = _NEGATION_SCOPE
+        elif negation_left:
+            tokens[-1] = f"not_{word}"
+            negation_left -= 1
+    return tokens
 
 
 def _entropy(counts: Sequence[int], total: int) -> float:
