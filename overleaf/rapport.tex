@@ -1,0 +1,608 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{amsmath,amssymb}
+
+\definecolor{teal}{RGB}{19,130,123}
+\definecolor{navy}{RGB}{18,48,74}
+\definecolor{lightgray}{RGB}{246,248,250}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=teal!60!black,
+  urlcolor=teal!60!black,
+  citecolor=teal!60!black,
+  pdftitle={Classification du sentiment financier par entropie et compression},
+  pdfauthor={Votre nom}
+}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Sentiment financier, information et compression}
+\rhead{\small Rapport de projet}
+\cfoot{\thepage}
+\setlength{\headheight}{14pt}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.2em,topsep=0.2em}
+\setlist[enumerate]{leftmargin=1.7em,itemsep=0.2em,topsep=0.2em}
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{lightgray},
+  frame=single,
+  rulecolor=\color{black!15},
+  breaklines=true,
+  columns=fullflexible,
+  showstringspaces=false
+}
+
+\title{\vspace{-1.5cm}\color{navy}\Huge Sentiment financier par entropie et compression\\[0.4em]
+\Large Une étude expérimentale inspirée de l'information algorithmique et du principe MDL}
+\author{Votre nom\\[0.3em]\normalsize Votre établissement}
+\date{\normalsize Rapport de projet}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Ce projet étudie une question pratique à la croisée du traitement automatique
+des langues et de la théorie de l'information : dans quelle mesure peut-on
+classer le sentiment de textes financiers à l'aide de représentations et de
+modèles compacts, plutôt qu'en s'appuyant uniquement sur un grand modèle
+pré-entraîné ? Deux pistes légères sont mises en œuvre et comparées à FinBERT :
+un classifieur Bernoulli Naive Bayes dont les mots sont sélectionnés et
+pondérés par leur gain d'information, et un classifieur qui rapproche la
+classification du principe Minimum Description Length (MDL) au moyen de
+dictionnaires zlib propres à chaque classe. Une chaîne d'évaluation commune
+est appliquée à Financial PhraseBank : 3\,448 phrases dédupliquées, accord
+d'annotation d'au moins 75\,\%, partition stratifiée 80/20 et graine fixée à
+42. Sur ce seul test pilote, le modèle zlib atteint une accuracy de 72,4\,\%
+et un F1 macro de 50,9\,\%, contre 93,9\,\% et 93,1\,\% pour FinBERT. Le
+classifieur zlib est plus rapide et son état sauvegardé est beaucoup plus
+petit, mais il détecte mal la classe négative. Ces résultats illustrent un
+compromis entre qualité et coût ; ils ne démontrent ni équivalence des
+approches ni supériorité générale de la compression.
+\end{abstract}
+
+\vfill
+\textbf{Mots-clés :} apprentissage automatique, induction, entropie,
+compression, MDL, sentiment financier, Financial PhraseBank, FinBERT.
+\newpage
+\tableofcontents
+\newpage
+
+\section{Résumé du travail}
+
+\subsection{Question étudiée}
+Les textes financiers sont courts, mais leur tonalité peut être difficile à
+interpréter automatiquement. Une variation de vocabulaire, une négation ou
+une expression spécifique au domaine peut inverser le sens d'une phrase.
+Les modèles de langue pré-entraînés comme FinBERT sont capables de traiter
+ces phénomènes avec une qualité élevée, mais ils ont un coût de calcul et une
+taille supérieurs à ceux de classifieurs lexicaux compacts.
+
+Le projet compare donc deux façons d'exploiter l'information contenue dans
+les textes sans construire un grand modèle neuronal. La première mesure
+l'association entre les mots et les étiquettes. La seconde compare les coûts
+de description obtenus en compressant un texte avec des informations issues
+des différentes classes. L'idée directrice est celle du cours :
+une représentation utile conserve les régularités informatives et évite de
+décrire à nouveau tout ce que le modèle peut déjà expliquer.
+
+\subsection{Ce qui a été construit}
+Le dépôt contient trois voies de classification, une procédure de comparaison
+reproductible et ses artefacts :
+\begin{itemize}
+  \item \textbf{Entropie pondérée :} tokenisation, représentation binaire de
+  présence/absence, sélection des mots par gain d'information et modèle
+  Bernoulli Naive Bayes pondéré.
+  \item \textbf{Compression zlib/MDL :} un dictionnaire est construit pour
+  chaque classe à partir du train ; chaque phrase de test est évaluée en
+  fonction du coût du dictionnaire, de son coût résiduel compressé et de
+  l'a priori de classe.
+  \item \textbf{Référence FinBERT :} modèle financier pré-entraîné évalué en
+  inférence, sans ajustement sur le corpus du benchmark.
+  \item \textbf{Évaluation :} baseline majorité, métriques par classe,
+  matrice de confusion, durées, taille sérialisée ou taille des poids, et
+  rapport JSON/Markdown contenant le protocole.
+\end{itemize}
+
+Le résultat central est nuancé : les méthodes compactes diminuent les coûts
+mesurés, mais leur qualité demeure nettement inférieure à FinBERT sur
+l'expérience disponible. La méthode zlib est la meilleure des deux méthodes
+légères, mais son rappel des exemples négatifs est particulièrement faible.
+Ce constat est essentiel : un modèle compact n'est utile que si la qualité
+qu'il conserve est suffisante pour l'usage visé.
+
+\section{Lien avec le cours : apprendre, c'est choisir une description}
+
+\subsection{Induction à partir d'exemples}
+L'induction consiste à inférer une règle générale à partir d'un nombre fini
+d'observations. Pour la tâche étudiée, les observations sont des phrases
+financières accompagnées d'une étiquette : \emph{positive}, \emph{negative}
+ou \emph{neutral}. Le classifieur doit produire une règle qui généralise aux
+phrases non vues.
+
+Ce problème est sous-déterminé : de nombreuses règles peuvent expliquer un
+échantillon d'entraînement. Une règle qui mémorise chaque phrase fonctionne
+sur les exemples connus, mais ne permet pas nécessairement de classifier une
+nouvelle phrase. À l'inverse, une règle trop simple peut ignorer les indices
+linguistiques qui distinguent les classes. L'enjeu est donc de choisir une
+représentation et un modèle qui équilibrent simplicité et adéquation aux
+données.
+
+Dans le projet, cet équilibre se manifeste concrètement dans la limite du
+vocabulaire de la méthode entropique, dans la taille limitée des dictionnaires
+zlib et dans la comparaison de leurs performances à un modèle pré-entraîné.
+La règle de sélection n'est pas universelle : elle dépend du corpus, des
+représentations permises et du coût retenu.
+
+\subsection{Analogie et limites de la portée du projet}
+Le chapitre du cours présente aussi l'analogie : une transformation apprise
+sur un exemple peut être transférée à une structure similaire, comme une
+règle morphologique appliquée à un nouveau mot. Le classifieur de sentiment
+ne résout pas directement des analogies du type $A:B::C:D$ et ne met pas en
+œuvre le programme spécialisé de génération de chaînes décrit dans le cours.
+Le rapprochement est conceptuel : dans les deux cas, on cherche une régularité
+qui explique plusieurs exemples plutôt que de les traiter isolément.
+
+La distinction est importante pour interpréter le livrable. Le projet est une
+application de l'induction et de la compression à la classification de
+sentiment, non une reproduction de l'ensemble des exercices du chapitre. De
+même, une anomalie pourrait en principe être associée à un coût résiduel élevé
+ou à une faible confiance, mais aucun détecteur d'anomalies n'a été évalué
+dans les résultats présentés ici.
+
+\subsection{Principe MDL}
+Le principe MDL choisit le modèle qui minimise la longueur totale de la
+description du modèle et des observations qui ne sont pas expliquées par
+celui-ci. Sous une forme schématique :
+\[
+  M^\star = \arg\min_M \left[C(M)+C(D\mid M)\right],
+\]
+où $C(M)$ désigne le coût de description du modèle et $C(D\mid M)$ celui des
+données conditionnellement à ce modèle.
+
+Un classifieur qui explique bien les régularités de ses exemples peut réduire
+la quantité d'information qu'il reste à encoder. Mais ajouter une règle
+complexe n'est intéressant que si le gain sur les résidus compense le coût de
+cette règle. La version pratique de MDL utilisée ici s'inspire de ce
+compromis sans prétendre calculer la complexité de Kolmogorov ni trouver un
+code universel optimal. zlib fournit un code effectif et calculable, mais le
+résultat dépend de ses choix d'implémentation et du protocole d'apprentissage.
+
+\section{Données et protocole expérimental}
+
+\subsection{Financial PhraseBank}
+Le benchmark utilise la version de Financial PhraseBank correspondant à un
+accord entre annotateurs d'au moins 75\,\%. Ce corpus contient des phrases
+financières étiquetées en trois catégories. Les doublons textuels de même
+étiquette sont dédupliqués par le chargeur ; un doublon avec une étiquette
+contradictoire déclenche une erreur plutôt qu'une décision arbitraire.
+Le chargement se fait depuis l'archive ZIP, sans exécuter de code distant.
+
+Après déduplication, l'expérience de référence contient 3\,448 phrases.
+La partition stratifiée conserve les proportions de classes dans les deux
+sous-ensembles : 2\,759 exemples pour l'entraînement et 689 pour le test.
+La graine pseudo-aléatoire vaut 42. Le fichier de résultats enregistre
+l'empreinte SHA-256 du corpus, la configuration, les versions de Python et
+des bibliothèques, ainsi que les métriques obtenues.
+
+\subsection{Partitions et prévention de fuite}
+Dans le split stratifié, les exemples sont répartis aléatoirement à l'intérieur
+de chaque classe afin que les catégories minoritaires soient représentées
+dans le train et le test. La graine fixe rend cette répartition reproductible,
+mais elle ne transforme pas le test en évaluation temporelle. Le benchmark
+propose également un split chronologique pour les fichiers CSV disposant
+d'horodatages ISO-8601 : les dates les plus récentes sont réservées au test,
+et les observations d'une même journée ne sont pas séparées.
+
+La présence de phrases répétées, de formulations très proches ou d'articles
+liés peut conduire à une estimation trop optimiste si des contenus liés
+apparaissent dans les deux partitions. La déduplication exacte aide, sans
+résoudre la fuite par quasi-doublons ni simuler le décalage temporel du marché.
+Une évaluation destinée à une utilisation future devrait privilégier un test
+chronologique et documenter la date de coupure.
+
+\subsection{Métriques}
+L'accuracy mesure la proportion totale de prédictions exactes. Elle est
+facile à lire, mais devient trompeuse si une classe domine. Le F1 d'une classe
+combine précision et rappel :
+\[
+  F_1 = 2\,\frac{\mathrm{précision}\times\mathrm{rappel}}
+  {\mathrm{précision}+\mathrm{rappel}}.
+\]
+Le F1 macro est la moyenne non pondérée des F1 des trois classes. Il rend
+visible la faible performance sur une classe minoritaire qui pourrait être
+cachée par un bon score global. Le rapport expose aussi la précision, le
+rappel, le F1 et le support de chaque classe, ainsi que la matrice de
+confusion.
+
+Les coûts sont mesurés dans le même script : temps d'entraînement ou de
+chargement, temps d'inférence normalisé à 1\,000 textes, taille d'un modèle
+sérialisé pour les classifieurs légers ou taille des poids pour FinBERT, et
+pic d'allocations Python suivi par \texttt{tracemalloc}. Ces quantités ne
+sont pas toutes équivalentes ; leurs limites sont détaillées dans la section
+des résultats.
+
+\section{Méthodes implémentées}
+
+\subsection{Classifieur entropique Bernoulli}
+Le classifieur du fichier \texttt{entropy\_sentiment.py} utilise des tokens en
+minuscules et une représentation binaire par document : un mot est présent
+ou absent, quelle que soit sa fréquence dans la phrase. Quelques marqueurs de
+négation sont reconnus et les mots dans une portée courte après ces marqueurs
+sont préfixés, par exemple \texttt{not\_good}. Il s'agit d'une heuristique
+simple et non d'une analyse syntaxique de la négation.
+
+Pour une caractéristique $t$, le gain d'information compare l'entropie des
+étiquettes avant et après observation de sa présence :
+\[
+ IG(t)=H(Y)-P(t)H(Y\mid t)-P(\neg t)H(Y\mid\neg t).
+\]
+Les caractéristiques dont le gain est nul ne sont pas retenues. Les autres
+sont triées par gain décroissant, avec le mot comme critère de départage
+déterministe, et au plus 5\,000 sont conservées dans le benchmark.
+La prise en compte de l'absence est adaptée au modèle Bernoulli : ne pas voir
+un terme peut également contribuer à la prédiction.
+
+Pour chaque classe, le modèle calcule une probabilité a posteriori lissée de
+présence de chaque terme. Le score de classe combine le logarithme de l'a
+priori de cette classe et les log-vraisemblances de présence ou d'absence,
+pondérées par le gain d'information du terme. Cette pondération favorise les
+caractéristiques informatives. Elle ne transforme toutefois pas ce modèle en
+optimiseur MDL complet : il n'évalue pas explicitement un coût total de
+description du modèle et des résidus.
+
+\subsection{Classifieur par compression et approximation MDL}
+La classe de compression, \texttt{CompressionMDLClassifier}, apprend un
+dictionnaire par étiquette à partir des textes d'entraînement uniquement.
+Les textes d'une classe sont concaténés et le dictionnaire est limité aux
+32\,768 derniers octets. Pour chaque classe $c$ et un texte de test $x$, le
+score utilisé est :
+\[
+ S(c,x) =
+ \frac{|\mathrm{zlib}(D_c)|}{N_c}
+ + |\mathrm{zlib}(x\mid D_c)|
+ + \frac{-\log_2(N_c/N)}{8},
+\]
+où $D_c$ est le dictionnaire de la classe, $N_c$ le nombre de textes
+d'entraînement de cette classe et $N$ le nombre total de textes
+d'entraînement. La prédiction est la classe dont le score est le plus faible.
+Le premier terme amortit le coût compressé du dictionnaire par les exemples
+de classe ; le second mesure le résidu du texte encodé avec ce dictionnaire ;
+le troisième pénalise les classes moins probables.
+
+Cette construction traduit l'intuition MDL : réutiliser une régularité de
+classe peut rendre le texte moins coûteux à encoder. C'est une approximation
+expérimentale. Le choix de concaténation, la limite de taille, l'algorithme
+zlib et l'amortissement par classe influencent le score. Il ne s'agit pas
+d'une longueur de description universelle ni d'une garantie théorique
+d'optimalité. Les dictionnaires sont construits sans utiliser le test afin
+d'éviter une fuite directe des exemples évalués.
+
+\subsection{Baseline et FinBERT}
+La baseline majorité prédit pour toute phrase l'étiquette la plus fréquente
+dans le train. Elle donne un seuil simple, mais sa réussite ne signifie pas
+qu'elle distingue le sentiment : dans cette expérience elle ne prédit que
+\emph{neutral}.
+
+FinBERT, identifié comme \texttt{ProsusAI/finbert}, sert de référence
+pré-entraînée. Il est utilisé sans fine-tuning sur Financial PhraseBank,
+sur CPU, avec un maximum de 128 tokens et des lots de 16 textes. Cette
+comparaison met en regard des systèmes ayant des historiques d'apprentissage
+différents : FinBERT a déjà acquis de l'information pendant son
+pré-entraînement, alors que les modèles légers apprennent sur la partition
+d'entraînement du benchmark. Les scores ne doivent donc pas être interprétés
+comme une comparaison contrôlée d'architectures recevant exactement les mêmes
+données d'apprentissage.
+
+\section{Résultats}
+
+\subsection{Qualité de classification}
+Le tableau suivant présente les scores du test de 689 phrases.
+
+\begin{table}[ht]
+\centering
+\caption{Résultats de classification sur Financial PhraseBank.}
+\label{tab:resultats}
+\begin{tabular}{lrrr}
+\toprule
+Modèle & Accuracy & F1 macro & Rappel négatif\\
+\midrule
+Baseline majorité & 0,621 & 0,255 & 0,000\\
+Entropie pondérée & 0,647 & 0,321 & 0,000\\
+Compression zlib/MDL & 0,724 & 0,509 & 0,095\\
+FinBERT & 0,939 & 0,931 & 0,988\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La baseline atteint 62,1\,\% d'accuracy parce que 428 des 689 phrases de test
+sont neutres. Elle attribue les 689 exemples à cette classe et son F1 macro
+reste à 25,5\,\%. Le classifieur entropique apporte un gain modeste en
+accuracy, mais ne reconnaît aucun exemple négatif et n'en récupère que 18
+sur 177 parmi les positifs.
+
+Le classifieur par compression est meilleur que la baseline et le modèle
+entropique sur les deux métriques globales. Son rappel positif est de 41,2\,\%
+(73 exemples sur 177) et son rappel négatif de 9,5\,\% (8 sur 84). Il prédit
+donc beaucoup de phrases négatives comme neutres ou positives. L'amélioration
+du F1 macro à 50,9\,\% ne rend pas le modèle équilibré.
+
+FinBERT obtient le meilleur résultat sur chaque mesure globale et un rappel
+élevé dans chaque classe : 98,8\,\% pour les négatifs, 91,4\,\% pour les
+neutres et 97,7\,\% pour les positifs. Dans le test étudié, il est donc le
+choix le plus performant lorsque la qualité de classification prime.
+
+\subsection{Matrice de confusion de zlib}
+La matrice montre plus précisément où la méthode compacte échoue.
+
+\begin{table}[ht]
+\centering
+\caption{Prédictions zlib par classe vraie (lignes) et prédite (colonnes).}
+\label{tab:confusion}
+\begin{tabular}{lrrr}
+\toprule
+Classe vraie & Prédite négative & Prédite neutre & Prédite positive\\
+\midrule
+Négative (84) & 8 & 58 & 18\\
+Neutre (428) & 1 & 418 & 9\\
+Positive (177) & 3 & 101 & 73\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La plupart des erreurs des classes négative et positive sont des prédictions
+neutres. Cette observation suggère que la séparation par dictionnaires de
+classe et l'usage des textes courts capturent assez bien les régularités
+neutres, mais pas les signaux discriminants nécessaires pour les catégories
+minoritaires. Le tableau n'indique pas à lui seul la cause : cela peut tenir
+aux propriétés des données, à la représentation, au score zlib, ou à leur
+combinaison. Il faudrait une analyse d'erreurs qualitative avant de choisir
+une modification de modèle.
+
+\subsection{Qualité, vitesse et taille}
+\begin{table}[ht]
+\centering
+\caption{Coûts rapportés par le benchmark pilote.}
+\label{tab:couts}
+\begin{tabular}{lrrr}
+\toprule
+Modèle & Inférence (s/1\,000) & Taille mesurée (Mo) & Pic Python (Mo)\\
+\midrule
+Entropie pondérée & 6,43 & 0,264 & 8,90\\
+Compression zlib/MDL & 3,73 & 0,099 & 0,72\\
+FinBERT & 71,76 & 437,94 & 11,53\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Sur cette machine et pour cette exécution, zlib traite 1\,000 textes environ
+19 fois plus vite que FinBERT en inférence CPU. Son état sérialisé fait
+environ 0,099 Mo, contre 437,94 Mo pour les poids de FinBERT seuls. Cette
+différence de taille est indicative, mais pas une comparaison strictement
+homogène : d'un côté, un objet léger sérialisé ; de l'autre, les paramètres
+du modèle, sans tokenizer et sans environnement d'exécution. Le rapport
+signale cette différence explicitement.
+
+De même, le pic mémoire de \texttt{tracemalloc} ne mesure que les
+allocations Python observées et ne couvre pas les allocations natives de
+PyTorch. Il ne représente ni la RAM maximale du processus FinBERT ni sa
+mémoire totale d'inférence. Les temps dépendent du processeur, des versions
+logicielles, du chargement et des conditions d'exécution. Ces nombres
+caractérisent un pilote, pas un engagement de performance en production.
+
+\section{Interprétation à la lumière du MDL}
+
+Le résultat zlib donne un exemple concret de compromis entre modèle et
+données résiduelles. Une classe fournit un dictionnaire qui aide à compresser
+certaines phrases ; un texte qui partage des motifs avec ce dictionnaire peut
+avoir un coût résiduel inférieur. Le coût amorti du dictionnaire et l'a priori
+de classe évitent de considérer uniquement la compression du texte isolé.
+La décision revient à comparer les longueurs de description approximatives
+des hypothèses concurrentes.
+
+Mais le fait d'employer un compresseur ne garantit pas, à lui seul, qu'un
+système réalise l'idéal MDL. Le score ici dépend du dictionnaire construit par
+concaténation, d'une fenêtre de taille fixe et d'une quantité de coût
+amortie. Le modèle ne recherche pas parmi toutes les explications possibles,
+ne calcule pas la complexité de Kolmogorov et n'optimise pas un code
+universel. Le terme « MDL » doit donc être compris comme une inspiration et
+une approximation calculable, comme l'indiquent la documentation et les
+rapports du dépôt.
+
+Le modèle entropique reflète une autre idée informationnelle : il favorise les
+mots qui réduisent l'incertitude sur l'étiquette. Un gain d'information nul
+signifie qu'observer la présence ou l'absence d'un terme n'améliore pas la
+connaissance de la classe dans le train. La pondération rend cette intuition
+opérationnelle ; elle n'encode cependant pas explicitement les données
+résiduelles comme le fait une formulation MDL.
+
+Enfin, « compréhension est compression » est une intuition utile, non une
+équivalence empirique immédiate entre taille et compréhension. Une phrase
+financière peut être prédite par une régularité de classe sans que le modèle
+comprenne toutes ses implications. La qualité obtenue doit être mesurée sur
+des exemples indépendants, et les coûts doivent être comparés selon des
+définitions communes.
+
+\section{Limites et validité}
+
+\subsection{Limites des données}
+Financial PhraseBank est un corpus annoté de phrases financières, pas un flux
+continu de nouvelles de marché. Les phrases sont courtes et la tâche à trois
+classes ne couvre pas toutes les distinctions pertinentes pour une décision
+financière. Le split stratifié aléatoire permet une comparaison pratique,
+mais ne répond pas à la question de la généralisation à une période future.
+Un seul split, même reproductible, ne mesure pas la variabilité selon la
+graine ou la date de coupure.
+
+\subsection{Limites de la comparaison}
+FinBERT est pré-entraîné, tandis que les méthodes légères sont entraînées sur
+2\,759 exemples de train. Les méthodes ne partent pas du même volume de
+connaissances. Le benchmark compare ici des systèmes utilisables en
+inférence, et non des architectures soumises à des budgets d'apprentissage
+identiques. Une étude complémentaire pourrait comparer les modèles légers à
+une baseline TF-IDF/logistic regression et explorer des versions de FinBERT
+compressées ou quantifiées.
+
+Les mesures de taille ne comprennent pas les mêmes composants ; le pic
+Python ne couvre pas toute la mémoire ; l'inférence dépend du matériel. Pour
+une comparaison opérationnelle, il faudrait mesurer le processus complet
+(poids, tokenizer, runtime et mémoire de pointe), dans un environnement
+identique, sur les mêmes lots et avec une procédure de chauffe explicite.
+
+\subsection{Limites des modèles}
+La méthode entropique utilise une portée de négation courte et des
+caractéristiques lexicales binaires. Elle ne modélise pas les dépendances
+syntaxiques, les longues portées, le contexte discursif ou les termes
+financiers composés de manière sophistiquée. Le modèle zlib est sensible à la
+représentation textuelle et à la composition de ses dictionnaires ; il n'a pas
+de mécanisme explicite de calibration et son faible rappel négatif est une
+limite importante pour toute application où les pertes liées à cette classe
+sont élevées.
+
+Ces limites empêchent de conclure que la compression est suffisante pour
+remplacer FinBERT sur des décisions sensibles. Un système léger pourrait
+plutôt servir de filtre, de baseline, de solution embarquée sous contraintes
+ou de première étape d'un pipeline, à condition d'être validé pour cet usage.
+
+\section{Reproductibilité et structure du livrable}
+
+Les scripts et résultats sont disponibles dans le dépôt
+\href{https://github.com/EtiennePellissier/Compressed-representation}{Compressed-representation}.
+Le benchmark commun se trouve dans
+\texttt{Traitement/evaluation/benchmark.py}, le classifieur entropique dans
+\texttt{entropy\_sentiment.py}, et les artefacts de l'expérience pilote dans
+\texttt{results/financial\_phrasebank.json} et
+\texttt{results/financial\_phrasebank.md}. Les tests automatisés sont dans
+\texttt{tests/}.
+
+La commande documentée pour reconstruire l'expérience télécharge l'archive
+Financial PhraseBank puis passe explicitement les paramètres de corpus,
+d'accord, de graine et de sortie :
+\begin{lstlisting}
+python Traitement/evaluation/benchmark.py \
+  --phrasebank-zip /tmp/FinancialPhraseBank-v1.0.zip \
+  --agreement 75 --seed 42 \
+  --out results/financial_phrasebank.json
+\end{lstlisting}
+Le premier lancement de FinBERT nécessite également ses dépendances et le
+téléchargement du modèle pré-entraîné. Les instructions exactes, notamment
+l'installation CPU de PyTorch et la licence du corpus, figurent dans le
+\texttt{README.md} du dépôt. Le corpus Financial PhraseBank est distribué sous
+licence CC BY-NC-SA 3.0 ; toute redistribution et réutilisation doivent en
+respecter les conditions et citer la publication associée.
+
+Le chargeur lit l'archive localement et refuse les entrées mal formées ou les
+étiquettes contradictoires. Les rapports contiennent l'empreinte SHA-256,
+la graine, les tailles des partitions, les paramètres, les métriques et les
+limites d'interprétation. Les tests de la bibliothèque standard peuvent être
+lancés depuis la racine du dépôt :
+\begin{lstlisting}
+python -m unittest discover -s tests -v
+\end{lstlisting}
+La reproductibilité exacte des durées et de certains résultats de modèles
+peut varier avec le matériel et les versions logicielles ; les métadonnées
+enregistrées permettent de rendre cette variation visible.
+
+\section{Perspectives}
+
+Les prochaines étapes doivent d'abord renforcer la validité expérimentale :
+\begin{enumerate}
+  \item répéter le benchmark sur plusieurs graines, et rapporter la moyenne,
+  la dispersion et les intervalles d'incertitude ;
+  \item produire un test chronologique avec des articles dédupliqués et une
+  date de coupure explicite ;
+  \item ajouter une baseline lexicale TF-IDF avec régression logistique ;
+  \item examiner manuellement les erreurs négatives et positives, en séparant
+  les erreurs d'annotation, les ambiguïtés et les limites du modèle ;
+  \item harmoniser les mesures de stockage et de mémoire, puis mesurer les
+  coûts sur le matériel cible.
+\end{enumerate}
+
+Côté modélisation, il serait possible d'expérimenter d'autres normalisations,
+des expressions multi-mots, des scores mieux calibrés et différents budgets
+de dictionnaire. Toute modification devrait être choisie à partir du jeu
+d'entraînement ou d'une validation, et non optimisée sur le test. Il faut
+également vérifier si un gain sur la classe négative se maintient dans une
+évaluation temporelle.
+
+La piste conceptuelle du cours pourrait être prolongée en étudiant si des
+coûts résiduels élevés signalent des textes hors domaine ou atypiques. Cela
+constituerait une nouvelle tâche de détection d'anomalies, à définir et
+évaluer séparément ; ce n'est pas un résultat établi par l'expérience
+actuelle. De même, les méthodes de résolution d'analogies du cours peuvent
+motiver la recherche de règles partageables, mais elles nécessiteraient une
+implémentation et un protocole d'évaluation propres.
+
+\section{Conclusion}
+
+Ce travail a transformé une intuition du cours -- choisir des explications
+qui décrivent les données de façon économique -- en deux approches
+calculables pour le sentiment financier. Le classifieur entropique utilise
+l'information mutuelle entre mots et étiquettes pour réduire et pondérer sa
+représentation ; le classifieur zlib compare des coûts de compression par
+classe comme approximation pratique d'une décision MDL. Un benchmark commun
+les met en regard d'une baseline majorité et de FinBERT sur un corpus annoté.
+
+Dans l'expérience pilote, zlib atteint un meilleur équilibre qualité-coût
+que la méthode entropique, avec un F1 macro de 50,9\,\%, un état sérialisé
+compact et un temps d'inférence CPU mesuré plus court que celui de FinBERT.
+Mais son rappel négatif de 9,5\,\% révèle une faiblesse majeure, et FinBERT
+reste largement supérieur en qualité avec 93,1\,\% de F1 macro. La conclusion
+n'est donc pas que la compression remplace les grands modèles, mais qu'elle
+offre une représentation et une famille de compromis à examiner lorsque les
+ressources sont contraintes.
+
+La suite logique est de consolider les résultats sur plusieurs partitions,
+de préférer une évaluation chronologique pour les textes financiers et de
+mesurer les coûts sur une base homogène. C'est seulement après ces étapes
+qu'il sera possible de déterminer si une version compacte est adaptée à un
+usage réel.
+
+\section*{Références}
+\addcontentsline{toc}{section}{Références}
+\begin{thebibliography}{9}
+\bibitem{malo}
+P. Malo et al. (2014).
+\newblock Good debt or bad debt: Detecting semantic orientations in economic
+texts.
+\newblock \emph{Journal of the Association for Information Science and
+Technology}, 65.
+
+\bibitem{araci}
+D. Araci (2019).
+\newblock FinBERT: Financial Sentiment Analysis with Pre-trained Language
+Models.
+\newblock \url{https://arxiv.org/abs/1908.10063}
+
+\bibitem{rissanen}
+J. Rissanen (1978).
+\newblock Modeling by shortest data description.
+\newblock \emph{Automatica}, 14(5), 465--471.
+
+\bibitem{course}
+\emph{Machine Learning and Algorithmic Information}, chapitre 4,
+« Detailed outline: induction, analogies, Minimum Description Length,
+prototype-based models and compression ». Support de cours.
+
+\bibitem{phrasebank}
+Financial PhraseBank, version annotée avec accord de 75\,\%.
+\newblock Licence CC BY-NC-SA 3.0. Voir les références et consignes de
+téléchargement dans le README du projet.
+\end{thebibliography}
+
+\end{document}

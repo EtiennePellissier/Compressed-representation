@@ -3,6 +3,10 @@
 Ce dossier contient une présentation Beamer autonome en français. Aucun
 fichier du corpus ni package de présentation personnalisé n'est requis.
 
+Le rapport détaillé du projet, en format article et prévu pour environ dix
+pages, est disponible dans [`rapport.tex`](./rapport.tex). Il peut être
+compilé séparément comme document racine Overleaf.
+
 ## Import dans Overleaf
 
 1. Téléchargez `main.tex` depuis ce dossier.
@@ -16,6 +20,10 @@ Le discours de cinq minutes, diapositive par diapositive, est dans
 [`../docs/compte-rendu-5-minutes.md`](../docs/compte-rendu-5-minutes.md).
 Les valeurs présentées viennent du rapport pilote
 [`../results/financial_phrasebank.md`](../results/financial_phrasebank.md).
+
+Pour compiler le rapport détaillé, importez `rapport.tex` dans un projet
+Overleaf vierge et sélectionnez **pdfLaTeX**. Remplacez les champs de nom et
+d'établissement avant remise.
 
 ## Ajustements
 
